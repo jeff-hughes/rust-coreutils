@@ -4,11 +4,31 @@ use chrono::{DateTime, TimeZone, Utc};
 use std::time::SystemTime;
 use std::{env, fs};
 
+#[derive(Debug)]
 struct File {
     filename: String,
     is_dir: bool,
     modified_time: Option<DateTime<Utc>>,
-    size: Option<u64>,
+    size: u64,
+}
+
+impl File {
+    fn round_size(&self) -> String {
+        if self.size > (1024 * 1024 * 1024 * 1024) {
+            return format!(
+                "{:.1}T",
+                (self.size as f64 / 1024.0 / 1024.0 / 1024.0 / 1024.0)
+            );
+        } else if self.size > (1024 * 1024 * 1024) {
+            return format!("{:.1}G", (self.size as f64 / 1024.0 / 1024.0 / 1024.0));
+        } else if self.size > (1024 * 1024) {
+            return format!("{:.1}M", (self.size as f64 / 1024.0 / 1024.0));
+        } else if self.size > 1024 {
+            return format!("{:.1}K", (self.size as f64 / 1024.0));
+        } else {
+            return format!("{:>4}", self.size);
+        }
+    }
 }
 
 impl Default for File {
@@ -17,7 +37,7 @@ impl Default for File {
             filename: String::new(),
             is_dir: false,
             modified_time: None,
-            size: None,
+            size: 0,
         }
     }
 }
@@ -56,17 +76,17 @@ fn main() {
                 .as_secs() as i64;
             file.modified_time = Some(Utc.timestamp(modified_time, 0));
 
-            file.size = Some(metadata.len());
+            file.size = metadata.len();
 
             println!(
-                "{}{}\t{} bytes\tLast modified: {}",
-                if file.is_dir { "./" } else { "" },
+                "{} {} {}{}",
+                file.round_size(),
+                file.modified_time.unwrap().format("%b %e %Y %k:%M"),
                 file.filename,
-                file.size.unwrap(),
-                file.modified_time.unwrap().format("%b %e %Y %k:%M")
+                if file.is_dir { "/" } else { "" },
             );
         } else {
-            print!("{}{}\t", if file.is_dir { "./" } else { "" }, file.filename);
+            print!("{}{}  ", file.filename, if file.is_dir { "/" } else { "" });
         }
     }
 
